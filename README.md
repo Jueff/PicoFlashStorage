@@ -23,11 +23,11 @@ Each sector has 4096 bytes.
 - 2 bytes: CRC
 
 **Blocks (0-509, Offset 16 + BlockIndex * 8):**
-- If block type < 0xf0:
+- If block type < 0x80:
   - 1 byte: block type
   - 5 bytes: block data
   - 2 bytes: block CRC
-- If block type >= 0xf0:
+- If block type >= 0x80:
   - 1 byte: block type
   - 1 byte: block subtype
   - 4 bytes: block data

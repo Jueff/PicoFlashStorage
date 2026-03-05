@@ -114,7 +114,7 @@ namespace PicoFlashStorage {
      * @brief Retrieves the most recent block of specified type from flash
      * @param block Reference to FlashBlock that will be populated with found data
      * @param type Block type identifier (0-255)
-     * @param subType Block subtype identifier (used when type >= 0xf0)
+     * @param subType Block subtype identifier (used when type >= 0x80)
      * @return true if block found and loaded, false if no matching block exists
      */
     bool getBlock(FlashBlock& block, uint8_t type, uint8_t subType = 0);

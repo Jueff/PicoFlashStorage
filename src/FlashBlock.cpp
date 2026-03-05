@@ -50,7 +50,7 @@ namespace PicoFlashStorage {
   bool FlashBlock::isDeleted() const
   {
     if (address == nullptr) return false;
-    bool hasSubtype = getType() >= 0xf0;
+    bool hasSubtype = getType() >= 0x80;
     uint8_t offset = hasSubtype ? 2 : 1;
     for (uint8_t i = offset; i < 6; ++i)
       if (*(address + i) != 0xFF)
@@ -86,7 +86,7 @@ namespace PicoFlashStorage {
   uint8_t FlashBlock::getSubtype() const
   {
     if (address == nullptr) return 0;
-    return (*address >= 0xf0) ? *(address + 1) : 0;
+    return (*address >= 0x80) ? *(address + 1) : 0;
   }
 
   const uint8_t* FlashBlock::getAddress() const
@@ -96,7 +96,7 @@ namespace PicoFlashStorage {
   
   bool FlashBlock::getData(uint8_t* dest, uint8_t srcOffset, uint8_t length) const
   {
-    bool hasSubtype = getType() >= 0xf0;
+    bool hasSubtype = getType() >= 0x80;
     if ((srcOffset + length) > (hasSubtype ? 4 : 5))
       return false;
     srcOffset += hasSubtype ? 2 : 1;
@@ -128,7 +128,7 @@ namespace PicoFlashStorage {
   
   bool FlashBlock::matchesType(uint8_t type, uint8_t subType) const
   {
-    return getType() == type && (type < 0xf0 || getSubtype() == subType) && isValid();
+    return getType() == type && (type < 0x80 || getSubtype() == subType) && isValid();
   }
 
   // FlashWriteBlock
@@ -160,12 +160,12 @@ namespace PicoFlashStorage {
 
   uint8_t FlashWriteBlock::getSubtype() const
   {
-    return (*newData >= 0xf0) ? *(newData + 1) : 0;
+    return (*newData >= 0x80) ? *(newData + 1) : 0;
   }
 
   bool FlashWriteBlock::setData(const uint8_t* source, uint8_t offset, uint8_t length)
   {
-    bool hasSubtype = (*newData) >= 0xf0;
+    bool hasSubtype = (*newData) >= 0x80;
     if ((offset + length) > (hasSubtype ? 4 : 5))
       return false;
     offset += hasSubtype ? 2 : 1;

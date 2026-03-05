@@ -143,7 +143,7 @@ namespace PicoFlashStorage {
 
   bool FlashStorage::getBlock(FlashBlock& block, uint8_t type, uint8_t subType)
   {
-    bool hasSubtype = type >= 0xf0;
+    bool hasSubtype = type >= 0x80;
     for (int16_t i = sectorCount - 1; i >= 0; i--)
     {
       for (int16_t j = pSectors[i]->getFirstFreeBlock() - 1; j >= 0; j--)
@@ -177,7 +177,7 @@ namespace PicoFlashStorage {
 
   bool FlashStorage::deleteBlock(uint8_t type)
   {
-    return deleteBlock(type, type >= 0xf0 ? 00 : 0xff);
+    return deleteBlock(type, type >= 0x80 ? 00 : 0xff);
   }
 
   bool FlashStorage::deleteBlock(uint8_t type, uint8_t subtype)

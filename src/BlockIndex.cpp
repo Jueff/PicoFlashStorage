@@ -46,7 +46,7 @@ namespace PicoFlashStorage {
         FlashBlock fb(addr);
         if (!fb.isValid()) continue;
         uint8_t type = fb.getType();
-        uint8_t subtype = (type >= 0xf0) ? fb.getSubtype() : 0;
+        uint8_t subtype = (type >= 0x80) ? fb.getSubtype() : 0;
         bool found = false;
         for (int k = 0; k < count; ++k) {
           if (entries[k].type == type && entries[k].subtype == subtype) {

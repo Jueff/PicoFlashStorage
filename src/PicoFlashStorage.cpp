@@ -327,7 +327,7 @@ namespace PicoFlashStorage {
 
     byte* addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset + page * FLASH_PAGE_SIZE;
 #if FSC_LEVEL>= 3
-    Serial.printf("writing data at %08X with updateCounter=%d to page %d with checksum %08X\r\n", addr, currentUpdateCounter, page, crc); #
+    Serial.printf("writing data at %08X with updateCounter=%d to page %d with checksum %08X\r\n", addr, currentUpdateCounter, page, crc);
 #endif
       uint32_t ints = save_and_disable_interrupts();
     flash_range_program(FlashStorage::flashTargetOffset + page * FLASH_PAGE_SIZE, &buf[0], FLASH_PAGE_SIZE);

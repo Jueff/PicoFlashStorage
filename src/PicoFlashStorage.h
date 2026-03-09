@@ -1,7 +1,8 @@
 #pragma once
 
 /*
- * Copyright 2026 Jürgen Winkler
+ * SPDX-FileCopyrightText: 2025-2026 Juergen Winkler <MobaLedLib@gmx.at>
+ * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal

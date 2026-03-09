@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025-2026 Juergen Winkler <MobaLedLib@gmx.at>
+ * SPDX-License-Identifier: MIT
+ *
+*/
+
 #include "SecureSector.h"
 #include <cstdlib> // For malloc and free
 #include <cstring> // For memcpy and memset

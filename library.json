@@ -1,0 +1,32 @@
+{
+  "name": "PicoFlashStorage",
+  "version": "1.0.1",
+  "description": "Flash storage management with wear leveling and block indexing. This library provides sector management, wear leveling, and block indexing for flash storage on Arduino-compatible platforms.",
+  "keywords": [ "data", "storage", "flash", "wear", "leveling", "block", "indexing" ],
+  "authors": [
+    {
+      "name": "Jueff",
+      "email": "MobaLedLib@gmx.at",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jueff/PicoFlashStorage.git"
+  },
+  "homepage": "https://github.com/jueff/PicoFlashStorage",
+  "frameworks": [ "arduino" ],
+  "platforms": [ "raspberrypi" ],
+  "headers": [ "PicoFlashStorage.h" ],
+  "examples": [
+    {
+      "name": "FlashTest",
+      "base": "examples/FlashTest",
+      "files": [ "FlashTest.ino" ]
+    }
+  ],
+  "export": {
+    "include": [ "src/**/*", "examples/**/*" ],
+    "exclude": [ "*.git*", "build/**/*" ]
+  }
+}

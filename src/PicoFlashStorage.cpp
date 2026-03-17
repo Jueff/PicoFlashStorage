@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2025-2026 Juergen Winkler <MobaLedLib@gmx.at>
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  * 
 */
 
@@ -10,14 +10,14 @@
 #include <cstdio>
 #include <cstdint>
 #include "PicoFlashStorage.h"
-#include "FlashStorageConfig.h"
 #include "BlockIndex.h"
 #include "crc16.h"
 
 namespace PicoFlashStorage {
 
   // Initialize static member
-  int FlashStorage::flashTargetOffset = PICO_FLASH_SIZE_BYTES - FLASH_PAGE_SIZE * FlashStorage::ReservedPages;
+  int     FlashStorage::flashTargetOffset = PICO_FLASH_SIZE_BYTES - FLASH_PAGE_SIZE * FlashStorage::ReservedPages;
+  uint8_t FlashStorage::LogLevel = 0;
 
 // Konstruktor
   FlashStorage::FlashStorage(uint16_t baseSectorNumber, uint16_t sectorCount, const uint8_t identity[8])
@@ -26,21 +26,15 @@ namespace PicoFlashStorage {
     pSectors = (SecureSector**)malloc(sectorCount * sizeof(SecureSector));
     for (uint16_t i = 0; i < sectorCount; i++)
     {
-#if FSC_LEVEL>= 3
-      Serial.printf("creating sector %d\r\n", baseSectorNumber + i);
-#endif
+      PFS_LOG(3, "creating sector %d\r\n", baseSectorNumber + i);
       pSectors[i] = new SecureSector(baseSectorNumber + i, signature);
-#if FSC_LEVEL>= 5
-      if (pSectors[i]->isHeaderValid())
       {
-        Serial.printf("Header of sector %d is valid, eraseCount = %d, firstFreeBlock = %d\r\n", pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
+        PFS_LOG(5, "Header of sector %d is valid, eraseCount = %d, firstFreeBlock = %d\r\n", pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
         maxEraseCount = std::max(pSectors[i]->getEraseCount(), maxEraseCount);
       }
-#endif
     }
-#if FSC_LEVEL>= 5
-    Serial.printf("Max erase count = %d\r\n", maxEraseCount);
-#endif
+    PFS_LOG(5, "Max erase count = %d\r\n", maxEraseCount);
+
     for (uint16_t i = 0; i < sectorCount; i++)
     {
       if (!pSectors[i]->isHeaderValid())
@@ -48,15 +42,11 @@ namespace PicoFlashStorage {
         maxEraseCount = SecureSector::nextEraseCount(maxEraseCount);
         if (pSectors[i]->format(maxEraseCount))
         {
-#if FSC_LEVEL>= 4
-          Serial.printf("format of sector %d with eraseCount %d is ok\r\n", i, maxEraseCount);
-#endif
+          PFS_LOG(4, "format of sector %d with eraseCount %d is ok\r\n", i, maxEraseCount);
         }
         else
         {
-#if FSC_LEVEL>= 1
-          Serial.printf("format of sector %d with eraseCount %d failed\r\n", i, maxEraseCount);
-#endif
+          PFS_LOG(1, "format of sector % d with eraseCount % d failed\r\n", i, maxEraseCount);
           pSectors[i] = NULL;
         }
       }
@@ -80,23 +70,17 @@ namespace PicoFlashStorage {
     FlashBlock fb;
     if (getBlock(fb, block->getType(), block->getSubtype()) && block->matches(&fb))
     {
-#if FSC_LEVEL>= 5
-      Serial.printf("data of block type %d/%d didn't change, don't save block\r\n", block->getType(), block->getSubtype());
-#endif
+      PFS_LOG(5, "data of block type %d/%d didn't change, don't save block\r\n", block->getType(), block->getSubtype());
       return true;
     }
 
-#if FSC_LEVEL>= 5
-    Serial.printf("data of block type %d/%d needs to be written\r\n", block->getType(), block->getSubtype());
-#endif
+    PFS_LOG(5, "data of block type %d/%d needs to be written\r\n", block->getType(), block->getSubtype());
 
     for (uint16_t i = 0; i < sectorCount; i++)
     {
       if (pSectors[i]->hasFreeBlock() && pSectors[i]->write(block)) return true;
     }
-#if FSC_LEVEL>= 3
-    Serial.printf("no free block found to write type %d/%d\r\n", block->getType(), block->getSubtype());
-#endif
+    PFS_LOG(3, "no free block found to write type %d/%d\r\n", block->getType(), block->getSubtype());
 
     // BlockIndex verwenden, um zu sichern
     BlockIndex index(sectorCount, this);
@@ -105,9 +89,7 @@ namespace PicoFlashStorage {
       const auto& entry = *index.getEntry(i);
       if (entry.block.getSector() == 0) {
         blocksToPreserve.push_back(new FlashWriteBlock(entry.block));
-#if FSC_LEVEL>= 5
-        Serial.printf("will preserve block type %d/%d from sector %d block %d\r\n", entry.type, entry.subtype, entry.block.getSector(), entry.block.getBlock());
-#endif
+        PFS_LOG(5, "will preserve block type %d/%d from sector %d block %d\r\n", entry.type, entry.subtype, entry.block.getSector(), entry.block.getBlock());
       }
     }
 
@@ -117,9 +99,7 @@ namespace PicoFlashStorage {
     SecureSector* newSector = pSectors[sectorCount - 1];
     bool result = true;
     for (const auto backup : blocksToPreserve) {
-#if FSC_LEVEL>= 5
-      Serial.printf("preserving block type %d/%d\r\n", backup->getType(), backup->getSubtype());
-#endif
+      PFS_LOG(5, "preserving block type %d/%d\r\n", backup->getType(), backup->getSubtype());
       result &= write(backup);
       delete backup;
     }
@@ -161,18 +141,18 @@ namespace PicoFlashStorage {
         {
           if (fb.isDeleted())
           {
-            //Serial.printf("found deleted block of type %d/%d at sector %d block %d\r\n", type, subType, i, j);
+            PFS_LOG(2, "found deleted block of type %d/%d at sector %d block %d\r\n", type, subType, i, j);
             return false;
           }
 
           // found a corrupted block, don't continue lookup because we must inform user about corrupted data
           if (!fb.isValid())
           {
-            //Serial.printf("found corrupted block of type %d/%d at sector %d block %d\r\n", type, subType, i, j);
+            PFS_LOG(2, "found corrupted block of type %d/%d at sector %d block %d\r\n", type, subType, i, j);
             return false;
           }
 
-          //Serial.printf("found block of type %d/%d at sector %d block %d, ffb = %d\r\n", type, subType, i, j, pSectors[i]->getFirstFreeBlock());
+          PFS_LOG(5, "found block of type %d/%d at sector %d block %d, ffb = %d\r\n", type, subType, i, j, pSectors[i]->getFirstFreeBlock());
           block.setAddress(address);
           return true;
         }
@@ -211,12 +191,10 @@ namespace PicoFlashStorage {
    */
   void FlashStorage::sort()
   {
-#if FSC_LEVEL>= 5
     for (uint16_t i = 0; i < sectorCount; i++)
     {
-      Serial.printf("before: pos %d sector %d eraseCount %d firstFreeBlock %d\r\n", i, pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
+      PFS_LOG(6, "before: pos %d sector %d eraseCount %d firstFreeBlock %d\r\n", i, pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
     }
-#endif
 
     SecureSector* sortedSectors[sectorCount];
     memset(&sortedSectors[0], 0, sizeof(sortedSectors));
@@ -235,12 +213,10 @@ namespace PicoFlashStorage {
     }
     bool isOverflow = isHighBlock && isLowBlock;
 
-#if FSC_LEVEL>= 5
     if (isOverflow)
     {
-      Serial.println("Erase count overflow detected, sorting sectors with overflow handling");
+      PFS_LOG(4, "Erase count overflow detected, sorting sectors with overflow handling");
     }
-#endif
 
     // Sort sectors: youngest first, oldest last (handles overflow)
     for (uint16_t j = 0; j < sectorCount; j++)
@@ -273,14 +249,12 @@ namespace PicoFlashStorage {
     }
     memcpy(&pSectors[0], &sortedSectors[0], sizeof(sortedSectors));
     sectorCount -= badSectors;
-#if FSC_LEVEL>= 5
     // dump sector list
-    Serial.println("Sorted sector list:");
+    PFS_LOG(6, "Sorted sector list:");
     for (uint16_t i = 0; i < sectorCount; i++)
     {
-      Serial.printf("pos %d sector %d eraseCount %d firstFreeBlock %d\r\n", i, pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
+      PFS_LOG(6, "pos %d sector %d eraseCount %d firstFreeBlock %d\r\n", i, pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
     }
-#endif
   }
 
   void FlashStorage::dumpBuffer(uint8_t* address) const
@@ -332,24 +306,19 @@ namespace PicoFlashStorage {
     unsigned long crc = set_crc();
 
     byte* addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset + page * FLASH_PAGE_SIZE;
-#if FSC_LEVEL>= 3
-    Serial.printf("writing data at %08X with updateCounter=%d to page %d with checksum %08X\r\n", addr, currentUpdateCounter, page, crc);
-#endif
-      uint32_t ints = save_and_disable_interrupts();
+    PFS_LOG(3, "writing data at %08X with updateCounter=%d to page %d with checksum %08X\r\n", addr, currentUpdateCounter, page, crc);
+
+    uint32_t ints = save_and_disable_interrupts();
     flash_range_program(FlashStorage::flashTargetOffset + page * FLASH_PAGE_SIZE, &buf[0], FLASH_PAGE_SIZE);
     restore_interrupts(ints);
     if (memcmp(addr, &buf[0], FLASH_PAGE_SIZE) != 0)
     {
-#if FSC_LEVEL>= 1
-      Serial.printf("flash page %d write failed\r\n", page);
-#endif
+      PFS_LOG(1, "flash page %d write failed\r\n", page);
       return false;
     }
     else
     {
-#if FSC_LEVEL>= 3
-      Serial.printf("flash page %d write ok\r\n", page);
-#endif
+      PFS_LOG(3, "flash page %d write ok\r\n", page);
       return true;
     }
   }
@@ -388,9 +357,7 @@ namespace PicoFlashStorage {
       addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset + i * FLASH_PAGE_SIZE;
       if (!isEmpty(i) && !check_crc(addr))
       {
-#if FSC_LEVEL>= 3
-        Serial.printf("page %d not empty or CRC wrong\r\n", i);
-#endif
+        PFS_LOG(3, "page %d not empty or CRC wrong\r\n", i);
         good = false;
       }
     }
@@ -401,16 +368,12 @@ namespace PicoFlashStorage {
 
     if (!good || memcmp(addr, &buf[0], FLASH_PAGE_SIZE) != 0)
     {
-#if FSC_LEVEL>= 1
-      Serial.println("flash isn't correctly initialized");
-#endif
+      PFS_LOG(1, "flash isn't correctly initialized\r\n");
       initBuffers();
     }
     else
     {
-#if FSC_LEVEL>= 3
-      Serial.println("flash correctly initialized\r\n");
-#endif
+      PFS_LOG(3, "flash correctly initialized\r\n");
     }
   }
 }

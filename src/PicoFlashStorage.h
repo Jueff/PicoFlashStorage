@@ -2,7 +2,7 @@
 
 /*
  * SPDX-FileCopyrightText: 2025-2026 Juergen Winkler <MobaLedLib@gmx.at>
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,10 @@ extern "C" {
 #include "SecureSector.h"
 #include "Arduino.h"
 
+
 namespace PicoFlashStorage {
+
+  #define PFS_LOG(level,...) if (FlashStorage::LogLevel>=level) Serial.printf(__VA_ARGS__);
 
   class FlashStorage
   {
@@ -136,9 +139,29 @@ namespace PicoFlashStorage {
      */
     void dumpSector(uint16_t sectorId);
 
+    /**
+     * @brief Dumps a memory region in hex format to serial output for debugging
+     * @param address Starting address of memory to dump
+     * @param size Number of bytes to dump
+     */
     static void dumpMemory(const uint8_t* address, uint16_t size);
 
+    /**
+     * @brief Sets the log level for debug output (0 = none, higher values increase verbosity)
+     * @param level Log level to set
+     */
     static constexpr int ReservedPages = 32;
+
+    /**
+     * @brief Sets the log level for debug output (0 = none, higher values increase verbosity)
+     * @param level Log level to set
+     */
     static int flashTargetOffset;
+
+    /**
+     * @brief Sets the log level for debug output (0 = none, higher values increase verbosity)
+     * @param level Log level to set
+     */
+    static uint8_t LogLevel;
   };
 }

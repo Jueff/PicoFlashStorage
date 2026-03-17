@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2025-2026 Juergen Winkler <MobaLedLib@gmx.at>
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
 */
 
@@ -14,7 +14,6 @@ extern "C" {
 };
 
 #include "FlashBlock.h"
-#include "FlashStorageConfig.h"
 
 namespace PicoFlashStorage {
 

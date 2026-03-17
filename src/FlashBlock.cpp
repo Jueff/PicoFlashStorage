@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2025-2026 Juergen Winkler <MobaLedLib@gmx.at>
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
 */
 
@@ -45,9 +45,9 @@ namespace PicoFlashStorage {
     if (address == nullptr) return false;
     uint16_t crc = CRC::crc16(address, 6);
     uint16_t crcExpected = *(address + 6) * 256 + *(address + 7);
-#if FSC_LEVEL>= 5
-    Serial.printf("checking block at %X: calculated CRC=%04X, expected CRC=%04X or %04X\r\n", address, crc, crcExpected, (uint16_t)~crcExpected);
-#endif
+
+    PFS_LOG(5, "checking block at %X: calculated CRC=%04X, expected CRC=%04X or %04X\r\n", address, crc, crcExpected, (uint16_t)~crcExpected);
+
     if (crc == crcExpected) return true;
     if (crc == (uint16_t)~crcExpected) return isDeleted();
     return false;
@@ -61,25 +61,24 @@ namespace PicoFlashStorage {
     for (uint8_t i = offset; i < 6; ++i)
       if (*(address + i) != 0xFF)
       {
-#if FSC_LEVEL>= 5
-        Serial.printf("block at %X is not deleted because byte %d is not 0xFF\r\n", address, i);
-#endif
+        PFS_LOG(5, "block at %X is not deleted because byte %d is not 0xFF\r\n", address, i);
         return false;
       }
     uint16_t crc = CRC::crc16(address, 6);
     crc = ~crc;
     bool result = (*(address + 6) == (crc >> 8)) && (*(address + 7) == (crc & 0xFF));
 
-#if FSC_LEVEL>= 5
-    if (!result)
+    if (FlashStorage::LogLevel >= 5)
     {
-      Serial.printf("block at %X is not a deleted block because CRC does not match: expected %04X but found %04X\r\n", address, crc, *(address + 6) * 256 + *(address + 7));
+      if (!result)
+      {
+        PFS_LOG(5, "block at %X is not a deleted block because CRC does not match: expected %04X but found %04X\r\n", address, crc, *(address + 6) * 256 + *(address + 7));
+      }
+      else
+      {
+        PFS_LOG(5, "block at %X is a deleted block\r\n", address);
+      }
     }
-    else
-    {
-      Serial.printf("block at %X is a deleted block\r\n", address);
-    }
-#endif
     return result;
   }
 
@@ -221,9 +220,7 @@ namespace PicoFlashStorage {
     if (isDeletedFlag) crc = ~crc;
     newData[6] = crc >> 8;
     newData[7] = crc & 0xff;
-#if FSC_LEVEL>= 5
-    Serial.printf("set CRC for block type %d/%d: crc=%04X, isDeleted = %d\r\n", getType(), getSubtype(), crc, isDeletedFlag);
-#endif
+    PFS_LOG(5, "set CRC for block type %d/%d: crc=%04X, isDeleted = %d\r\n", getType(), getSubtype(), crc, isDeletedFlag);
   }
 
   bool FlashWriteBlock::matches(const FlashBlock* flashBlock) const

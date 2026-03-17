@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2025-2026 Juergen Winkler <MobaLedLib@gmx.at>
- * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  *
 */
 
@@ -10,7 +10,6 @@
 #include "Arduino.h" // For Serial
 #include "crc16.h"
 #include "PicoFlashStorage.h"
-#include "FlashStorageConfig.h"
 
 namespace PicoFlashStorage {
 
@@ -59,9 +58,7 @@ namespace PicoFlashStorage {
     headerValid = (memcmp(address, buffer, 16) == 0);
     if (!headerValid)
     {
-#if FSC_LEVEL>= 1
-      Serial.printf("Header of sector %d is invalid\r\n", sectorNumber);
-#endif
+      PFS_LOG(1, "Header of sector %d is invalid\r\n", sectorNumber);
     }
     eraseCount = (buffer[11] << 16) + (buffer[12] << 8) + (buffer[13]);
     return headerValid;
@@ -81,9 +78,7 @@ namespace PicoFlashStorage {
     flash_range_erase(sectorNumber * FLASH_SECTOR_SIZE, FLASH_SECTOR_SIZE);
     flash_range_program(sectorNumber * FLASH_SECTOR_SIZE, buffer, FLASH_PAGE_SIZE);
     restore_interrupts(ints);
-#if FSC_LEVEL>= 3
-    Serial.printf("formatting sector %d with eraseCount %d\r\n", sectorNumber, eraseCount);
-#endif
+    PFS_LOG(3, "formatting sector %d with eraseCount %d\r\n", sectorNumber, eraseCount);
     return checkFormat() && getFreeMemoryStartOffset() <= 16;
   }
 
@@ -97,9 +92,7 @@ namespace PicoFlashStorage {
     uint8_t bufferOffset = address - pageAddress;
     memcpy(buffer, pageAddress, FLASH_PAGE_SIZE);
     memcpy(buffer + bufferOffset, block->getBuffer(), 8);
-#if FSC_LEVEL>= 3
-    Serial.printf("writing block at flash address %X\r\n", address + bufferOffset);
-#endif
+    PFS_LOG(3, "writing block at flash address %X\r\n", address + bufferOffset);
     uint32_t ints = save_and_disable_interrupts();
     flash_range_program(flashOffset, buffer, FLASH_PAGE_SIZE);
     restore_interrupts(ints);
@@ -163,9 +156,7 @@ namespace PicoFlashStorage {
   {
     if (getFreeMemoryStartOffset() == 0)
     {
-#if FSC_LEVEL>= 4
-      Serial.printf("Sector %d is empty\r\n", sectorNumber);
-#endif
+      PFS_LOG(4, "Sector %d is empty\r\n", sectorNumber);
       return true;
     }
     return false;
@@ -176,8 +167,6 @@ namespace PicoFlashStorage {
     uint16_t crc = CRC::crc16(buffer + offset, length);
     *(buffer + offset + length) = crc >> 8;
     *(buffer + offset + length + 1) = crc & 0xff;
-#if FSC_LEVEL>= 5
-    Serial.printf("set CRC sector %d at address %X with length %d: crc=%04X\r\n", sectorNumber, buffer + offset, length, crc);
-#endif
+    PFS_LOG(5, "set CRC sector %d at address %X with length %d: crc=%04X\r\n", sectorNumber, buffer + offset, length, crc);
   }
 }

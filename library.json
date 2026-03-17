@@ -1,6 +1,6 @@
 {
   "name": "PicoFlashStorage",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Flash storage management with wear leveling and block indexing. This library provides sector management, wear leveling, and block indexing for flash storage on Arduino-compatible platforms.",
   "keywords": [ "data", "storage", "flash", "wear", "leveling", "block", "indexing" ],
   "authors": [

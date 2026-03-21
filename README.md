@@ -17,7 +17,7 @@ Manages multiple flash sectors with automatic wear leveling, CRC data integrity 
 Each sector has 4096 bytes.
 
 **Header (Offset 0, length 16 bytes):**
-- 8 bytes: Sector Identity (signature, e.g. `MLLSERVO`)
+- 8 bytes: Sector Identity (signature, e.g. 'MLLSERVO')
 - 3 bytes: Erase count (incremented on every page erase, tracks wear)
 - 3 bytes: Reserved (0)
 - 2 bytes: CRC

@@ -14,7 +14,8 @@
     "type": "git",
     "url": "https://github.com/jueff/PicoFlashStorage.git"
   },
-  "homepage": "https://github.com/jueff/PicoFlashStorage",
+  "homepage": "https://github.com/jueff/PicoFlashStorage#readme",
+  "license": "LGPL-2.1-or-later",
   "frameworks": [ "arduino" ],
   "platforms": [ "raspberrypi" ],
   "headers": [ "PicoFlashStorage.h" ],

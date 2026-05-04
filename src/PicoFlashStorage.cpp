@@ -83,7 +83,7 @@ namespace PicoFlashStorage {
     PFS_LOG(3, "no free block found to write type %d/%d\r\n", block->getType(), block->getSubtype());
 
     // BlockIndex verwenden, um zu sichern
-    BlockIndex index(sectorCount, this);
+    BlockIndex index(this);
     std::vector<FlashWriteBlock*> blocksToPreserve;
     for (int i = 0; i < index.getCount(); ++i) {
       const auto& entry = *index.getEntry(i);

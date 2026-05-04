@@ -8,26 +8,24 @@
 
 namespace PicoFlashStorage {
 
-  BlockIndex::BlockIndex(int maxEntries, FlashStorage* fs)
-    : maxEntries(maxEntries), fs(fs), count(0)
+  BlockIndex::BlockIndex(FlashStorage* fs)  // maxEntries entfernt
+    : fs(fs)
   {
-    entries = new Entry[maxEntries];
     buildIndex();
   }
 
   BlockIndex::~BlockIndex() {
-    delete[] entries;
   }
 
-  int BlockIndex::getCount() const { return count; }
+  int BlockIndex::getCount() const { return static_cast<int>(entries.size()); }  // Verwendet size() statt count
 
   const BlockIndex::Entry* BlockIndex::getEntry(int idx) const {
-    if (idx < 0 || idx >= count) return nullptr;
+    if (idx < 0 || idx >= static_cast<int>(entries.size())) return nullptr;
     return &entries[idx];
   }
 
   const BlockIndex::Entry* BlockIndex::find(uint8_t type, uint8_t subtype) const {
-    for (int i = 0; i < count; ++i) {
+    for (size_t i = 0; i < entries.size(); ++i) {  // size_t für Index
       if (entries[i].type == type && entries[i].subtype == subtype)
         return &entries[i];
     }
@@ -39,7 +37,7 @@ namespace PicoFlashStorage {
    * Only valid blocks are indexed. Duplicate type/subtype combinations are ignored.
    */
   void BlockIndex::buildIndex() {
-    count = 0;
+    entries.clear();  // Vector leeren statt count = 0
     if (!fs) return;
     int16_t sectorCount = fs->getSectorsCount();
     for (int16_t i = sectorCount - 1; i >= 0; i--) {
@@ -53,17 +51,15 @@ namespace PicoFlashStorage {
         uint8_t type = fb.getType();
         uint8_t subtype = (type >= 0x80) ? fb.getSubtype() : 0;
         bool found = false;
-        for (int k = 0; k < count; ++k) {
+        for (size_t k = 0; k < entries.size(); ++k) {  // Prüfung auf Duplikate
           if (entries[k].type == type && entries[k].subtype == subtype) {
             found = true;
             break;
           }
         }
-        if (!found && count < maxEntries) {
-          entries[count].type = type;
-          entries[count].subtype = subtype;
-          entries[count].block = IndexedFlashBlock(addr, i, j);
-          ++count;
+        if (!found) {  // Keine Prüfung auf maxEntries mehr
+          entries.push_back({type, subtype, IndexedFlashBlock(addr, i, j)});
+          PFS_LOG(5, "indexed block type %d/%d at sector %d block %d\r\n", type, subtype, i, j);
         }
       }
     }

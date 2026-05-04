@@ -46,7 +46,7 @@ namespace PicoFlashStorage {
     uint16_t crc = CRC::crc16(address, 6);
     uint16_t crcExpected = *(address + 6) * 256 + *(address + 7);
 
-    PFS_LOG(5, "checking block at %X: calculated CRC=%04X, expected CRC=%04X or %04X\r\n", address, crc, crcExpected, (uint16_t)~crcExpected);
+    PFS_LOG(8, "checking block at %X: calculated CRC=%04X, expected CRC=%04X or %04X\r\n", address, crc, crcExpected, (uint16_t)~crcExpected);
 
     if (crc == crcExpected) return true;
     if (crc == (uint16_t)~crcExpected) return isDeleted();

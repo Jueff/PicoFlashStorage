@@ -35,7 +35,7 @@ namespace PicoFlashStorage {
     bool isHeaderValid() const;
     int getEraseCount() const;
     uint16_t getSectorNumber() const;
-    bool checkFormat();
+    bool isValid();
     bool format(int eraseCount);
     bool write(FlashWriteBlock* block);
     bool hasFreeBlock() const;

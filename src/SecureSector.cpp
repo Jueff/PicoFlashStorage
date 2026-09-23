@@ -19,7 +19,7 @@ namespace PicoFlashStorage {
     memcpy(this->identity, identity, 8);
     eraseCount = 1;
     this->sectorNumber = sectorNumber;
-    checkFormat();
+    isValid();
   }
 
   SecureSector::~SecureSector()
@@ -48,7 +48,7 @@ namespace PicoFlashStorage {
     return sectorNumber;
   }
 
-  bool SecureSector::checkFormat()
+  bool SecureSector::isValid()
   {
     uint8_t* address = (uint8_t*)XIP_BASE + sectorNumber * FLASH_SECTOR_SIZE;
     memcpy(buffer, address, FLASH_PAGE_SIZE);
@@ -79,7 +79,7 @@ namespace PicoFlashStorage {
     flash_range_program(sectorNumber * FLASH_SECTOR_SIZE, buffer, FLASH_PAGE_SIZE);
     restore_interrupts(ints);
     PFS_LOG(3, "formatting sector %d with eraseCount %d\r\n", sectorNumber, eraseCount);
-    return checkFormat() && getFreeMemoryStartOffset() <= 16;
+    return isValid() && getFreeMemoryStartOffset() <= 16;
   }
 
   bool SecureSector::write(FlashWriteBlock* block)
@@ -92,7 +92,7 @@ namespace PicoFlashStorage {
     uint8_t bufferOffset = address - pageAddress;
     memcpy(buffer, pageAddress, FLASH_PAGE_SIZE);
     memcpy(buffer + bufferOffset, block->getBuffer(), 8);
-    PFS_LOG(3, "writing block at flash address %X\r\n", address + bufferOffset);
+    PFS_LOG(3, "writing block at flash address %X\r\n", address);
     uint32_t ints = save_and_disable_interrupts();
     flash_range_program(flashOffset, buffer, FLASH_PAGE_SIZE);
     restore_interrupts(ints);

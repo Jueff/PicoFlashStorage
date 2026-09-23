@@ -53,9 +53,9 @@ namespace PicoFlashStorage {
     const Entry* find(uint8_t type, uint8_t subtype = 0) const;
 
   private:
-    std::vector<Entry> entries;  // Ersetzt Entry* entries und entfernt maxEntries/count
+    std::vector<Entry> entries;  
     FlashStorage* fs;
 
-    void buildIndex(); // Nur Deklaration
+    void buildIndex();
   };
 }

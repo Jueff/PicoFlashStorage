@@ -29,8 +29,11 @@ namespace PicoFlashStorage {
       PFS_LOG(3, "creating sector %d\r\n", baseSectorNumber + i);
       pSectors[i] = new SecureSector(baseSectorNumber + i, signature);
       {
-        PFS_LOG(5, "Header of sector %d is valid, eraseCount = %d, firstFreeBlock = %d\r\n", pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
-        maxEraseCount = std::max(pSectors[i]->getEraseCount(), maxEraseCount);
+        PFS_LOG(5, "Header of sector %d is %s, eraseCount = %d, firstFreeBlock = %d\r\n", pSectors[i]->isValid() ? "valid" : "invalid", pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
+        if (pSectors[i]->isValid())
+        {
+          maxEraseCount = std::max(pSectors[i]->getEraseCount(), maxEraseCount);
+        }
       }
     }
     PFS_LOG(5, "Max erase count = %d\r\n", maxEraseCount);
@@ -76,33 +79,55 @@ namespace PicoFlashStorage {
 
     PFS_LOG(5, "data of block type %d/%d needs to be written\r\n", block->getType(), block->getSubtype());
 
-    for (uint16_t i = 0; i < sectorCount; i++)
+    for (uint16_t i = 0; i < sectorCount-1; i++)
     {
       if (pSectors[i]->hasFreeBlock() && pSectors[i]->write(block)) return true;
     }
     PFS_LOG(3, "no free block found to write type %d/%d\r\n", block->getType(), block->getSubtype());
+    bool allBLocksFree = pSectors[sectorCount - 1]->getFirstFreeBlock() == 0;
 
     // BlockIndex verwenden, um zu sichern
     BlockIndex index(this);
     std::vector<FlashWriteBlock*> blocksToPreserve;
     for (int i = 0; i < index.getCount(); ++i) {
       const auto& entry = *index.getEntry(i);
-      if (entry.block.getSector() == 0) {
+
+      // if we don't have the last sector free we need additionally to preserve any blocks from the last sector
+      // sector(0) always needs to be preserved because it is the oldest block
+      // sector(sectorCount-1) needs to be preserved if it is not empty, because it is the most recent block and we will erase it in the next step to get an additional free scetor
+      if (entry.block.getSector() == 0 || (!allBLocksFree && entry.block.getSector() == sectorCount - 1))
+      {
         blocksToPreserve.push_back(new FlashWriteBlock(entry.block));
         PFS_LOG(5, "will preserve block type %d/%d from sector %d block %d\r\n", entry.type, entry.subtype, entry.block.getSector(), entry.block.getBlock());
       }
+    }
+    if (!allBLocksFree)   
+    {
+      // this may happen in two cases: 
+      // 1) the last preserve operation failed with power failure 
+      // 2) the last sector is not reserved free because of update from previous implementation that didn't keep one free sector
+      PFS_LOG(6, "Sorted sector list before freeing:\r\n");
+      for (uint16_t i = 0; i < sectorCount; i++)
+      {
+        PFS_LOG(6, "pos %d sector %d eraseCount %d firstFreeBlock %d\r\n", i, pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
+      }
+      PFS_LOG(5, "freeing sector %d\r\n", sectorCount - 1);
+      pSectors[sectorCount - 1]->format(SecureSector::nextEraseCount(pSectors[sectorCount - 1]->getEraseCount()));
+    }
+
+    bool result = true;
+    for (const auto backup : blocksToPreserve)
+    {
+      PFS_LOG(5, "preserving block type %d/%d\r\n", backup->getType(), backup->getSubtype());
+      result &= pSectors[sectorCount - 1]->write(backup);
+      delete backup;
     }
 
     pSectors[0]->format(SecureSector::nextEraseCount(pSectors[sectorCount - 1]->getEraseCount()));
     sort();
 
-    SecureSector* newSector = pSectors[sectorCount - 1];
-    bool result = true;
-    for (const auto backup : blocksToPreserve) {
-      PFS_LOG(5, "preserving block type %d/%d\r\n", backup->getType(), backup->getSubtype());
-      result &= write(backup);
-      delete backup;
-    }
+    // write the new block into the second last sector, so that the last sector is always the most recently erased one 
+    SecureSector* newSector = pSectors[sectorCount - 2];
     if (result) if (newSector->hasFreeBlock() && newSector->write(block)) return true;
     return false;
   }
@@ -250,7 +275,7 @@ namespace PicoFlashStorage {
     memcpy(&pSectors[0], &sortedSectors[0], sizeof(sortedSectors));
     sectorCount -= badSectors;
     // dump sector list
-    PFS_LOG(6, "Sorted sector list:");
+    PFS_LOG(6, "Sorted sector list:\r\n");
     for (uint16_t i = 0; i < sectorCount; i++)
     {
       PFS_LOG(6, "pos %d sector %d eraseCount %d firstFreeBlock %d\r\n", i, pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());

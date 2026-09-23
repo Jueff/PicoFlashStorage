@@ -53,6 +53,18 @@ namespace PicoFlashStorage {
     return false;
   }
 
+  /*
+  * A block is active if the CRC of the first 6 bytes matches the last 2 bytes.
+  * block is not deleted and not empty.
+  */
+  bool FlashBlock::isActive() const
+  {
+    if (address == nullptr) return false;
+    uint16_t crc = CRC::crc16(address, 6);
+    uint16_t crcExpected = *(address + 6) * 256 + *(address + 7);
+    return crc == crcExpected;  // normal CRC only; tombstones use ~CRC
+  }
+
   bool FlashBlock::isDeleted() const
   {
     if (address == nullptr) return false;

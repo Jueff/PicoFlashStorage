@@ -16,6 +16,7 @@ namespace PicoFlashStorage {
     void setAddress(const uint8_t* address);
     bool isEmpty() const;
     bool isValid() const;
+    bool isActive() const;
     bool isDeleted() const;
     uint8_t getType() const;
     uint8_t getSubtype() const;

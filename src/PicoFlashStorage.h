@@ -114,12 +114,12 @@ namespace PicoFlashStorage
     bool getBlock(FlashBlock& block, uint8_t type, uint8_t subType = 0);
 
     /**
-     * deletes a block of given type.
+     * @brief Deletes the most recent block of the given type (no subtype).
      */
     bool deleteBlock(uint8_t type);
 
     /**
-     * deletes a block of given type and subtype.
+     * @brief Deletes the most recent block of the given type and subtype.
      */
     bool deleteBlock(uint8_t type, uint8_t subtype);
 

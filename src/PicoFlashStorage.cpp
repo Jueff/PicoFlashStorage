@@ -97,7 +97,7 @@ namespace PicoFlashStorage
       if (pSectors[i]->hasFreeBlock() && pSectors[i]->write(block)) return true;
     }
     PFS_LOG(3, "no free block found to write type %d/%d\r\n", block->getType(), block->getSubtype());
-    bool allBLocksFree = pSectors[sectorCount - 1]->getFirstFreeBlock() == 0;
+    bool allBlocksFree = pSectors[sectorCount - 1]->getFirstFreeBlock() == 0;
 
     // Use BlockIndex to collect live blocks that must be preserved before reclaim
     BlockIndex index(this);
@@ -108,14 +108,14 @@ namespace PicoFlashStorage
 
       // if we don't have the last sector free we need additionally to preserve any blocks from the last sector
       // sector(0) always needs to be preserved because it is the oldest block
-      // sector(sectorCount-1) needs to be preserved if it is not empty, because it is the most recent block and we will erase it in the next step to get an additional free scetor
-      if (entry.block.getSector() == 0 || (!allBLocksFree && entry.block.getSector() == sectorCount - 1))
+      // sector(sectorCount-1) needs to be preserved if it is not empty, because it is the most recent block and we will erase it in the next step to get an additional free sector
+      if (entry.block.getSector() == 0 || (!allBlocksFree && entry.block.getSector() == sectorCount - 1))
       {
         blocksToPreserve.push_back(new FlashWriteBlock(entry.block));
         PFS_LOG(5, "will preserve block type %d/%d from sector %d block %d\r\n", entry.type, entry.subtype, entry.block.getSector(), entry.block.getBlock());
       }
     }
-    if (!allBLocksFree)   
+    if (!allBlocksFree)
     {
       // this may happen in two cases: 
       // 1) the last preserve operation failed with power failure 
@@ -194,7 +194,7 @@ namespace PicoFlashStorage
             return false;
           }
 
-          PFS_LOG(5, "found block of type %d/%d at sector %d block %d, ffb = %d\r\n", type, subType, i, j, pSectors[i]->getFirstFreeBlock());
+          PFS_LOG(5, "found block of type %d/%d at sector %d block %d, firstFreeBlock = %d\r\n", type, subType, i, j, pSectors[i]->getFirstFreeBlock());
           block.setAddress(address);
           return true;
         }

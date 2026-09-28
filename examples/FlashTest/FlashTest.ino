@@ -28,8 +28,8 @@ extern "C" {
 #include "crc16.h"
 };
 
-#include "FlashStorage.h"
-#include "FlashBlock.h"
+#include "PicoFlashStorage.h"
+//#include "FlashBlock.h"
 #include "BlockIndex.h"
 
 using namespace PicoFlashStorage;
@@ -106,7 +106,7 @@ void setup() {
     pFS = NULL;
   }
 
-  pBlockIndex = new BlockIndex(30, pFS);
+  pBlockIndex = new BlockIndex(pFS);
   Serial.printf("BlockIndexCount: %d\n", pBlockIndex->getCount());
   for (int i = 0; i < pBlockIndex->getCount(); i++) {
     const BlockIndex::Entry* e = pBlockIndex->getEntry(i);
@@ -133,7 +133,7 @@ void setup() {
   FlashBlock fbs;
   if (pFS->getBlock(fbs, 0x40))
   {
-    Serial.printf("found block at %X\r\n", fbs.getAddress());
+    Serial.printf("found block at %X\r\n", (unsigned int)fbs.getAddress());
   }
   else
   {
@@ -151,7 +151,7 @@ void ListBlocks()
 {
   // List crrently stored blocks
   Serial.println("Listing current blocks...");
-  BlockIndex index(1000, pFS);
+  BlockIndex index(pFS);
   for (int i = 0; i < index.getCount(); i++)
   {
     const BlockIndex::Entry* entry = index.getEntry(i);

@@ -196,8 +196,8 @@ void ListBlocks()
 {
   Serial.println("Listing current active blocks (BlockIndex)...");
   BlockIndex index(pFS);
-  Serial.printf("BlockIndexCount: %d\n", index.getCount());
-  for (int i = 0; i < index.getCount(); i++) {
+  Serial.printf("BlockIndexCount: %u\n", (unsigned)index.getCount());
+  for (size_t i = 0; i < index.getCount(); i++) {
     const BlockIndex::Entry* entry = index.getEntry(i);
     Serial.printf("  type=0x%02X subtype=0x%02X sector=%d block=%d\n",
                   entry->type, entry->subtype,

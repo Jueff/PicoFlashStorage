@@ -41,7 +41,8 @@ extern "C" {
 #include "Arduino.h"
 
 
-namespace PicoFlashStorage {
+namespace PicoFlashStorage
+{
 
   #define PFS_LOG(level,...) if (FlashStorage::LogLevel>=level) Serial.printf(__VA_ARGS__);
 

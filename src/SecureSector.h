@@ -15,7 +15,8 @@ extern "C" {
 
 #include "FlashBlock.h"
 
-namespace PicoFlashStorage {
+namespace PicoFlashStorage
+{
 
   class SecureSector
   {

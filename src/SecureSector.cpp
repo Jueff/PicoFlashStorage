@@ -7,11 +7,13 @@
 #include "SecureSector.h"
 #include <cstdlib> // For malloc and free
 #include <cstring> // For memcpy and memset
+#include <cstdint>
 #include "Arduino.h" // For Serial
 #include "crc16.h"
 #include "PicoFlashStorage.h"
 
-namespace PicoFlashStorage {
+namespace PicoFlashStorage
+{
 
   SecureSector::SecureSector(uint16_t sectorNumber, const uint8_t identity[8])
   {
@@ -66,7 +68,6 @@ namespace PicoFlashStorage {
 
   bool SecureSector::format(int eraseCount)
   {
-    uint8_t* addr = (uint8_t*)XIP_BASE + sectorNumber * FLASH_SECTOR_SIZE;
     this->eraseCount = eraseCount;
     memset(buffer, 0xff, FLASH_PAGE_SIZE);
     memcpy(buffer, identity, sizeof(identity));
@@ -92,7 +93,7 @@ namespace PicoFlashStorage {
     uint8_t bufferOffset = address - pageAddress;
     memcpy(buffer, pageAddress, FLASH_PAGE_SIZE);
     memcpy(buffer + bufferOffset, block->getBuffer(), 8);
-    PFS_LOG(3, "writing block at flash address %X\r\n", address);
+    PFS_LOG(3, "writing block at flash address %X\r\n", (unsigned)(uintptr_t)address);
     uint32_t ints = save_and_disable_interrupts();
     flash_range_program(flashOffset, buffer, FLASH_PAGE_SIZE);
     restore_interrupts(ints);
@@ -167,6 +168,6 @@ namespace PicoFlashStorage {
     uint16_t crc = CRC::crc16(buffer + offset, length);
     *(buffer + offset + length) = crc >> 8;
     *(buffer + offset + length + 1) = crc & 0xff;
-    PFS_LOG(5, "set CRC sector %d at address %X with length %d: crc=%04X\r\n", sectorNumber, buffer + offset, length, crc);
+    PFS_LOG(5, "set CRC sector %d at address %X with length %d: crc=%04X\r\n", sectorNumber, (unsigned)(uintptr_t)(buffer + offset), length, crc);
   }
 }

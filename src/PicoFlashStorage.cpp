@@ -13,7 +13,8 @@
 #include "BlockIndex.h"
 #include "crc16.h"
 
-namespace PicoFlashStorage {
+namespace PicoFlashStorage
+{
 
   // Initialize static member
   int     FlashStorage::flashTargetOffset = PICO_FLASH_SIZE_BYTES - FLASH_PAGE_SIZE * FlashStorage::ReservedPages;
@@ -29,7 +30,7 @@ namespace PicoFlashStorage {
       PFS_LOG(3, "creating sector %d\r\n", baseSectorNumber + i);
       pSectors[i] = new SecureSector(baseSectorNumber + i, signature);
       {
-        PFS_LOG(5, "Header of sector %d is %s, eraseCount = %d, firstFreeBlock = %d\r\n", pSectors[i]->isValid() ? "valid" : "invalid", pSectors[i]->getSectorNumber(), pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
+        PFS_LOG(5, "Header of sector %d is %s, eraseCount = %d, firstFreeBlock = %d\r\n", pSectors[i]->getSectorNumber(), pSectors[i]->isValid() ? "valid" : "invalid", pSectors[i]->getEraseCount(), pSectors[i]->getFirstFreeBlock());
         if (pSectors[i]->isValid())
         {
           maxEraseCount = std::max(pSectors[i]->getEraseCount(), maxEraseCount);
@@ -89,7 +90,8 @@ namespace PicoFlashStorage {
     // BlockIndex verwenden, um zu sichern
     BlockIndex index(this);
     std::vector<FlashWriteBlock*> blocksToPreserve;
-    for (int i = 0; i < index.getCount(); ++i) {
+    for (int i = 0; i < index.getCount(); ++i)
+    {
       const auto& entry = *index.getEntry(i);
 
       // if we don't have the last sector free we need additionally to preserve any blocks from the last sector
@@ -154,7 +156,6 @@ namespace PicoFlashStorage {
 
   bool FlashStorage::getBlock(FlashBlock& block, uint8_t type, uint8_t subType)
   {
-    bool hasSubtype = type >= 0x80;
     for (int16_t i = sectorCount - 1; i >= 0; i--)
     {
       for (int16_t j = pSectors[i]->getFirstFreeBlock() - 1; j >= 0; j--)
@@ -195,7 +196,7 @@ namespace PicoFlashStorage {
   {
     FlashWriteBlock delBlock(type, subtype);
     delBlock.setIsDeleted(true);
-    // Setze alle Datenbytes auf 0xFF (gelˆscht)
+    // Setze alle Datenbytes auf 0xFF (gelùoescht)
     memset(delBlock.getBuffer() + 2, 0xFF, 6);
     return write(&delBlock);
   }
@@ -331,7 +332,7 @@ namespace PicoFlashStorage {
     unsigned long crc = set_crc();
 
     byte* addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset + page * FLASH_PAGE_SIZE;
-    PFS_LOG(3, "writing data at %08X with updateCounter=%d to page %d with checksum %08X\r\n", addr, currentUpdateCounter, page, crc);
+    PFS_LOG(3, "writing data at %08X with updateCounter=%d to page %d with checksum %08lX\r\n", (unsigned)(uintptr_t)addr, currentUpdateCounter, page, crc);
 
     uint32_t ints = save_and_disable_interrupts();
     flash_range_program(FlashStorage::flashTargetOffset + page * FLASH_PAGE_SIZE, &buf[0], FLASH_PAGE_SIZE);
@@ -351,7 +352,7 @@ namespace PicoFlashStorage {
   bool FlashStorage::isEmpty(uint16_t pageId)
   {
     byte* addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset + pageId * FLASH_PAGE_SIZE;
-    for (int index = 0; index < FLASH_PAGE_SIZE; index++)
+    for (uint32_t index = 0; index < FLASH_PAGE_SIZE; index++)
     {
       if (*(addr + index) != 0xff)
       {

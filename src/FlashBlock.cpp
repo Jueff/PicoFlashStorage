@@ -7,11 +7,13 @@
 #include "FlashBlock.h"
 #include <cstdlib>
 #include <cstring>
+#include <cstdint>
 #include "Arduino.h"
 #include "crc16.h"
 #include "PicoFlashStorage.h"
 
-namespace PicoFlashStorage {
+namespace PicoFlashStorage
+{
 
   FlashBlock::FlashBlock(const uint8_t* address)
   {
@@ -46,23 +48,11 @@ namespace PicoFlashStorage {
     uint16_t crc = CRC::crc16(address, 6);
     uint16_t crcExpected = *(address + 6) * 256 + *(address + 7);
 
-    PFS_LOG(8, "checking block at %X: calculated CRC=%04X, expected CRC=%04X or %04X\r\n", address, crc, crcExpected, (uint16_t)~crcExpected);
+    PFS_LOG(8, "checking block at %X: calculated CRC=%04X, expected CRC=%04X or %04X\r\n", (unsigned)(uintptr_t)address, crc, crcExpected, (uint16_t)~crcExpected);
 
     if (crc == crcExpected) return true;
     if (crc == (uint16_t)~crcExpected) return isDeleted();
     return false;
-  }
-
-  /*
-  * A block is active if the CRC of the first 6 bytes matches the last 2 bytes.
-  * block is not deleted and not empty.
-  */
-  bool FlashBlock::isActive() const
-  {
-    if (address == nullptr) return false;
-    uint16_t crc = CRC::crc16(address, 6);
-    uint16_t crcExpected = *(address + 6) * 256 + *(address + 7);
-    return crc == crcExpected;  // normal CRC only; tombstones use ~CRC
   }
 
   bool FlashBlock::isDeleted() const
@@ -73,7 +63,7 @@ namespace PicoFlashStorage {
     for (uint8_t i = offset; i < 6; ++i)
       if (*(address + i) != 0xFF)
       {
-        PFS_LOG(5, "block at %X is not deleted because byte %d is not 0xFF\r\n", address, i);
+        PFS_LOG(5, "block at %X is not deleted because byte %d is not 0xFF\r\n", (unsigned)(uintptr_t)address, i);
         return false;
       }
     uint16_t crc = CRC::crc16(address, 6);
@@ -84,11 +74,11 @@ namespace PicoFlashStorage {
     {
       if (!result)
       {
-        PFS_LOG(5, "block at %X is not a deleted block because CRC does not match: expected %04X but found %04X\r\n", address, crc, *(address + 6) * 256 + *(address + 7));
+        PFS_LOG(5, "block at %X is not a deleted block because CRC does not match: expected %04X but found %04X\r\n", (unsigned)(uintptr_t)address, crc, *(address + 6) * 256 + *(address + 7));
       }
       else
       {
-        PFS_LOG(5, "block at %X is a deleted block\r\n", address);
+        PFS_LOG(5, "block at %X is a deleted block\r\n", (unsigned)(uintptr_t)address);
       }
     }
     return result;
@@ -252,8 +242,23 @@ namespace PicoFlashStorage {
   {
   }
 
-  int16_t IndexedFlashBlock::getSector() const { return sector; }
-  void IndexedFlashBlock::setSector(int16_t value) { sector = value; }
-  int16_t IndexedFlashBlock::getBlock() const { return block; }
-  void IndexedFlashBlock::setBlock(int16_t value) { block = value; }
+  int16_t IndexedFlashBlock::getSector() const
+  {
+    return sector;
+  }
+
+  void IndexedFlashBlock::setSector(int16_t value)
+  {
+    sector = value;
+  }
+
+  int16_t IndexedFlashBlock::getBlock() const
+  {
+    return block;
+  }
+
+  void IndexedFlashBlock::setBlock(int16_t value)
+  {
+    block = value;
+  }
 }

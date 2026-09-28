@@ -8,9 +8,11 @@
 #pragma once
 #include <stdint.h>
 
-namespace PicoFlashStorage {
+namespace PicoFlashStorage
+{
 
-  class CRC {
+  class CRC
+  {
   public:
     static uint16_t next(uint8_t newchar, uint16_t previous = 0xFFFF);		// 'previous' defaults to CRC seed value, 0xFFFF
     static uint16_t crc16(const uint8_t* buffer, uint16_t length);

@@ -7,7 +7,8 @@
 
 #include "crc16.h"
 
-namespace PicoFlashStorage {
+namespace PicoFlashStorage
+{
   static const uint16_t crc_table[256] =
   { 0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
     0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
@@ -43,10 +44,13 @@ namespace PicoFlashStorage {
     0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
   };
 
-  uint16_t CRC::next(uint8_t newchar, uint16_t previous) {
-    union {
+  uint16_t CRC::next(uint8_t newchar, uint16_t previous)
+  {
+    union
+    {
       uint16_t word;
-      struct {
+      struct
+      {
         uint8_t	low;
         uint8_t high;
       } byte;
@@ -57,7 +61,8 @@ namespace PicoFlashStorage {
     return crc.word;
   }
 
-  uint16_t CRC::crc16(const uint8_t* buffer, uint16_t length) {
+  uint16_t CRC::crc16(const uint8_t* buffer, uint16_t length)
+  {
     uint16_t crc = 0xFFFF;
     while (length-- > 0)
     {

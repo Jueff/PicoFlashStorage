@@ -7,7 +7,8 @@
 #pragma once
 #include <cstdint>
 
-namespace PicoFlashStorage {
+namespace PicoFlashStorage
+{
 
   class FlashBlock
   {
@@ -16,7 +17,6 @@ namespace PicoFlashStorage {
     void setAddress(const uint8_t* address);
     bool isEmpty() const;
     bool isValid() const;
-    bool isActive() const;
     bool isDeleted() const;
     uint8_t getType() const;
     uint8_t getSubtype() const;
@@ -56,7 +56,8 @@ namespace PicoFlashStorage {
     bool isDeletedFlag = false;
   };
 
-  class IndexedFlashBlock : public FlashBlock {
+  class IndexedFlashBlock : public FlashBlock
+  {
   public:
     IndexedFlashBlock(uint8_t* address = nullptr, int16_t sector = -1, int16_t block = -1);
     int16_t getSector() const;

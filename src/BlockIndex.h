@@ -6,15 +6,18 @@
 
 #pragma once
 
-#include <vector>  // Neu hinzugefügt für std::vector
+#include <vector>
 #include "FlashBlock.h"
 #include "PicoFlashStorage.h"
 
-namespace PicoFlashStorage {
+namespace PicoFlashStorage
+{
 
-  class BlockIndex {
+  class BlockIndex
+  {
   public:
-    struct Entry {
+    struct Entry
+    {
       uint8_t type;
       uint8_t subtype;
       IndexedFlashBlock block;
@@ -24,7 +27,7 @@ namespace PicoFlashStorage {
      * @brief BlockIndex manages an index of flash blocks for fast lookup by type and subtype.
      * It builds an index from the flash storage and provides access to indexed entries.
      */
-    BlockIndex(FlashStorage* fs);  // maxEntries entfernt
+    BlockIndex(FlashStorage* fs);
 
     /**
      * @brief Destructor. Releases memory allocated for the index entries.
@@ -53,7 +56,7 @@ namespace PicoFlashStorage {
     const Entry* find(uint8_t type, uint8_t subtype = 0) const;
 
   private:
-    std::vector<Entry> entries;  
+    std::vector<Entry> entries;
     FlashStorage* fs;
 
     void buildIndex();

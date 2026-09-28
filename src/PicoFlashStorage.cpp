@@ -11,21 +11,26 @@
 #include <cstdint>
 #include "PicoFlashStorage.h"
 #include "BlockIndex.h"
-#include "crc16.h"
 
 namespace PicoFlashStorage
 {
 
-  // Initialize static member
-  int     FlashStorage::flashTargetOffset = PICO_FLASH_SIZE_BYTES - FLASH_PAGE_SIZE * FlashStorage::ReservedPages;
   uint8_t FlashStorage::LogLevel = 0;
 
 // Konstruktor
   FlashStorage::FlashStorage(uint16_t baseSectorNumber, uint16_t sectorCount, const uint8_t identity[8])
-    : baseSectorNumber(baseSectorNumber), sectorCount(sectorCount), maxEraseCount(0), currentUpdateCounter(-1), signature(&identity[0])
+    : pSectors(nullptr), baseSectorNumber(baseSectorNumber), sectorCount(sectorCount), maxEraseCount(0), signature(&identity[0])
   {
-    pSectors = (SecureSector**)malloc(sectorCount * sizeof(SecureSector));
-    for (uint16_t i = 0; i < sectorCount; i++)
+    // Wear-leveling needs at least one data sector + one reserved spare.
+    if (this->sectorCount < 2)
+    {
+      PFS_LOG(1, "need at least 2 sectors for FlashStorage\r\n");
+      this->sectorCount = 0;
+      return;
+    }
+
+    pSectors = (SecureSector**)malloc(this->sectorCount * sizeof(SecureSector*));
+    for (uint16_t i = 0; i < this->sectorCount; i++)
     {
       PFS_LOG(3, "creating sector %d\r\n", baseSectorNumber + i);
       pSectors[i] = new SecureSector(baseSectorNumber + i, signature);
@@ -39,7 +44,7 @@ namespace PicoFlashStorage
     }
     PFS_LOG(5, "Max erase count = %d\r\n", maxEraseCount);
 
-    for (uint16_t i = 0; i < sectorCount; i++)
+    for (uint16_t i = 0; i < this->sectorCount; i++)
     {
       if (!pSectors[i]->isHeaderValid())
       {
@@ -60,6 +65,7 @@ namespace PicoFlashStorage
 
   FlashStorage::~FlashStorage()
   {
+    if (!pSectors) return;
     for (uint16_t i = 0; i < sectorCount; i++)
     {
       delete pSectors[i];
@@ -69,6 +75,12 @@ namespace PicoFlashStorage
 
   bool FlashStorage::write(FlashWriteBlock* block)
   {
+    if (sectorCount < 2 || !pSectors)
+    {
+      PFS_LOG(1, "FlashStorage not usable (need >= 2 sectors)\r\n");
+      return false;
+    }
+
     block->setCRC();
     //dumpMemory(block->getBuffer(),8);
     FlashBlock fb;
@@ -80,7 +92,7 @@ namespace PicoFlashStorage
 
     PFS_LOG(5, "data of block type %d/%d needs to be written\r\n", block->getType(), block->getSubtype());
 
-    for (uint16_t i = 0; i < sectorCount-1; i++)
+    for (uint16_t i = 0; i < sectorCount - 1; i++)
     {
       if (pSectors[i]->hasFreeBlock() && pSectors[i]->write(block)) return true;
     }
@@ -90,7 +102,7 @@ namespace PicoFlashStorage
     // BlockIndex verwenden, um zu sichern
     BlockIndex index(this);
     std::vector<FlashWriteBlock*> blocksToPreserve;
-    for (int i = 0; i < index.getCount(); ++i)
+    for (size_t i = 0; i < index.getCount(); ++i)
     {
       const auto& entry = *index.getEntry(i);
 
@@ -128,9 +140,13 @@ namespace PicoFlashStorage
     pSectors[0]->format(SecureSector::nextEraseCount(pSectors[sectorCount - 1]->getEraseCount()));
     sort();
 
-    // write the new block into the second last sector, so that the last sector is always the most recently erased one 
-    SecureSector* newSector = pSectors[sectorCount - 2];
-    if (result) if (newSector->hasFreeBlock() && newSector->write(block)) return true;
+    if (!result) return false;
+
+    // Keep last sector reserved; use any writable sector with free space.
+    for (uint16_t i = 0; i < sectorCount - 1; i++)
+    {
+      if (pSectors[i]->hasFreeBlock() && pSectors[i]->write(block)) return true;
+    }
     return false;
   }
 
@@ -141,7 +157,7 @@ namespace PicoFlashStorage
 
   bool FlashStorage::isValid()
   {
-    return sectorCount > 0;
+    return sectorCount >= 2 && pSectors != nullptr;
   }
 
   uint8_t FlashStorage::getSectorsCount()
@@ -283,11 +299,6 @@ namespace PicoFlashStorage
     }
   }
 
-  void FlashStorage::dumpBuffer(uint8_t* address) const
-  {
-    dumpMemory(address, FLASH_PAGE_SIZE);
-  }
-
   void FlashStorage::dumpMemory(const uint8_t* address, uint16_t length)
   {
     for (int i = 0; i < length; i++)
@@ -296,110 +307,6 @@ namespace PicoFlashStorage
       Serial.printf("%02X ", ch);
       if (i % 32 == 31) Serial.println();
       else if (i % 8 == 7) Serial.print("- ");
-    }
-  }
-
-  unsigned long FlashStorage::set_crc()
-  {
-    unsigned long crc = CRC::crc16(&buf[0], FLASH_PAGE_SIZE - 4);
-    *(int*)(&buf[FLASH_PAGE_SIZE - 4]) = crc;
-    return crc;
-  }
-
-  bool FlashStorage::check_crc(uint8_t* address)
-  {
-    unsigned long crc = CRC::crc16(address, FLASH_PAGE_SIZE - 4);
-    unsigned long expected = *(unsigned long*)(address + FLASH_PAGE_SIZE - 4);
-    return crc == expected;
-  }
-
-  int16_t FlashStorage::findCurrentPage()
-  {
-    for (int i = FlashStorage::ReservedPages - 1; i > 0; i--)
-    {
-      byte* addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset + i * FLASH_PAGE_SIZE;
-      if (check_crc(addr))
-      {
-        return i;
-      }
-    }
-    return 0;
-  }
-
-  bool FlashStorage::saveToPage(uint16_t page)
-  {
-    *(int*)(&buf) = currentUpdateCounter;
-    unsigned long crc = set_crc();
-
-    byte* addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset + page * FLASH_PAGE_SIZE;
-    PFS_LOG(3, "writing data at %08X with updateCounter=%d to page %d with checksum %08lX\r\n", (unsigned)(uintptr_t)addr, currentUpdateCounter, page, crc);
-
-    uint32_t ints = save_and_disable_interrupts();
-    flash_range_program(FlashStorage::flashTargetOffset + page * FLASH_PAGE_SIZE, &buf[0], FLASH_PAGE_SIZE);
-    restore_interrupts(ints);
-    if (memcmp(addr, &buf[0], FLASH_PAGE_SIZE) != 0)
-    {
-      PFS_LOG(1, "flash page %d write failed\r\n", page);
-      return false;
-    }
-    else
-    {
-      PFS_LOG(3, "flash page %d write ok\r\n", page);
-      return true;
-    }
-  }
-
-  bool FlashStorage::isEmpty(uint16_t pageId)
-  {
-    byte* addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset + pageId * FLASH_PAGE_SIZE;
-    for (uint32_t index = 0; index < FLASH_PAGE_SIZE; index++)
-    {
-      if (*(addr + index) != 0xff)
-      {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool FlashStorage::initBuffers()
-  {
-    memset(&buf, 0, FLASH_PAGE_SIZE);
-    memcpy(&buf, (const void*)signature, 8);
-    set_crc();
-    uint32_t ints = save_and_disable_interrupts();
-    flash_range_erase(FlashStorage::flashTargetOffset, FLASH_PAGE_SIZE * FlashStorage::ReservedPages);
-    flash_range_program(FlashStorage::flashTargetOffset, &buf[0], FlashStorage::ReservedPages);
-    restore_interrupts(ints);
-    return true;
-  }
-
-  void FlashStorage::checkFormat()
-  {
-    byte* addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset;
-    bool good = true;
-    for (int i = 1; good && i < FlashStorage::ReservedPages; i++)
-    {
-      addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset + i * FLASH_PAGE_SIZE;
-      if (!isEmpty(i) && !check_crc(addr))
-      {
-        PFS_LOG(3, "page %d not empty or CRC wrong\r\n", i);
-        good = false;
-      }
-    }
-    addr = (byte*)XIP_BASE + FlashStorage::flashTargetOffset;
-    memset(&buf, 0, FLASH_PAGE_SIZE);
-    memcpy(&buf, signature, 8);
-    set_crc();
-
-    if (!good || memcmp(addr, &buf[0], FLASH_PAGE_SIZE) != 0)
-    {
-      PFS_LOG(1, "flash isn't correctly initialized\r\n");
-      initBuffers();
-    }
-    else
-    {
-      PFS_LOG(3, "flash correctly initialized\r\n");
     }
   }
 }

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <vector>
 #include "FlashBlock.h"
 #include "PicoFlashStorage.h"
@@ -36,16 +37,16 @@ namespace PicoFlashStorage
 
     /**
      * @brief Returns the number of indexed entries.
-     * @return Number of valid entries in the index.
+     * @return Number of live entries in the index.
      */
-    int getCount() const;
+    size_t getCount() const;
 
     /**
      * @brief Returns a pointer to the entry at the given index.
      * @param idx Index of the entry (0 <= idx < getCount())
      * @return Pointer to Entry or nullptr if index is out of bounds.
      */
-    const Entry* getEntry(int idx) const;
+    const Entry* getEntry(size_t idx) const;
 
     /**
      * @brief Finds an entry by block type and subtype.

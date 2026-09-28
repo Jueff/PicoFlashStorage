@@ -53,21 +53,10 @@ namespace PicoFlashStorage
     uint16_t baseSectorNumber;
     uint16_t sectorCount;
     int maxEraseCount;
-    int currentUpdateCounter;
 
     const uint8_t* signature;
-    uint8_t buf[FLASH_PAGE_SIZE];
 
-    void dumpBuffer(uint8_t* address) const;
     void sort();
-
-    unsigned long set_crc();
-    bool check_crc(uint8_t* address);
-    int16_t findCurrentPage();
-    bool saveToPage(uint16_t page);
-    bool isEmpty(uint16_t pageId);
-    bool initBuffers();
-    void checkFormat();
 
   public:
     /**
@@ -148,20 +137,7 @@ namespace PicoFlashStorage
     static void dumpMemory(const uint8_t* address, uint16_t size);
 
     /**
-     * @brief Sets the log level for debug output (0 = none, higher values increase verbosity)
-     * @param level Log level to set
-     */
-    static constexpr int ReservedPages = 32;
-
-    /**
-     * @brief Sets the log level for debug output (0 = none, higher values increase verbosity)
-     * @param level Log level to set
-     */
-    static int flashTargetOffset;
-
-    /**
-     * @brief Sets the log level for debug output (0 = none, higher values increase verbosity)
-     * @param level Log level to set
+     * @brief Log level for debug output (0 = none, higher values increase verbosity)
      */
     static uint8_t LogLevel;
   };

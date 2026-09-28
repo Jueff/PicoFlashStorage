@@ -34,8 +34,8 @@ namespace PicoFlashStorage
   class FlashWriteBlock
   {
   public:
-    FlashWriteBlock(int8_t blockType);
-    FlashWriteBlock(int8_t blockType, uint8_t subType);
+    FlashWriteBlock(uint8_t blockType);
+    FlashWriteBlock(uint8_t blockType, uint8_t subType);
     FlashWriteBlock(const FlashBlock& fb);
     ~FlashWriteBlock();
     uint8_t getType() const;

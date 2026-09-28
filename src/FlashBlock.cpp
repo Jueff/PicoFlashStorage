@@ -140,16 +140,17 @@ namespace PicoFlashStorage
 
   // FlashWriteBlock
 
-  FlashWriteBlock::FlashWriteBlock(int8_t blockType)
+  FlashWriteBlock::FlashWriteBlock(uint8_t blockType)
   {
     newData = (uint8_t*)malloc(8);
     memset(newData, 0xff, 8);
     *newData = blockType;
   }
 
-  FlashWriteBlock::FlashWriteBlock(int8_t blockType, uint8_t subType)
+  FlashWriteBlock::FlashWriteBlock(uint8_t blockType, uint8_t subType)
   {
     newData = (uint8_t*)malloc(8);
+    memset(newData, 0xff, 8);
     *newData = blockType;
     *(newData + 1) = subType;
   }

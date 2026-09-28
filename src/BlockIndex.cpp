@@ -19,14 +19,14 @@ namespace PicoFlashStorage
   {
   }
 
-  int BlockIndex::getCount() const
+  size_t BlockIndex::getCount() const
   {
-    return static_cast<int>(entries.size());
+    return entries.size();
   }
 
-  const BlockIndex::Entry* BlockIndex::getEntry(int idx) const
+  const BlockIndex::Entry* BlockIndex::getEntry(size_t idx) const
   {
-    if (idx < 0 || idx >= static_cast<int>(entries.size())) return nullptr;
+    if (idx >= entries.size()) return nullptr;
     return &entries[idx];
   }
 

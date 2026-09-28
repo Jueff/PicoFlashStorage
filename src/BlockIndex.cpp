@@ -9,7 +9,7 @@
 namespace PicoFlashStorage
 {
 
-  BlockIndex::BlockIndex(FlashStorage* fs)  // maxEntries entfernt
+  BlockIndex::BlockIndex(FlashStorage* fs)
     : fs(fs)
   {
     buildIndex();
@@ -19,7 +19,10 @@ namespace PicoFlashStorage
   {
   }
 
-  int BlockIndex::getCount() const { return static_cast<int>(entries.size()); }  // Verwendet size() statt count
+  int BlockIndex::getCount() const
+  {
+    return static_cast<int>(entries.size());
+  }
 
   const BlockIndex::Entry* BlockIndex::getEntry(int idx) const
   {
@@ -29,7 +32,8 @@ namespace PicoFlashStorage
 
   const BlockIndex::Entry* BlockIndex::find(uint8_t type, uint8_t subtype) const
   {
-    for (size_t i = 0; i < entries.size(); ++i) {  // size_t für Index
+    for (size_t i = 0; i < entries.size(); ++i)
+    {
       if (entries[i].type == type && entries[i].subtype == subtype)
         return &entries[i];
     }
@@ -37,40 +41,58 @@ namespace PicoFlashStorage
   }
 
   /**
-   * @brief Builds the index by scanning all sectors and blocks in the flash storage.
-   * Only valid, not deleted blocks are indexed. Duplicate type/subtype combinations are ignored.
+   * @brief Builds the index by scanning all sectors and blocks (newest first).
+   * For each type/subtype, the newest valid block decides:
+   * - not deleted -> included in the index
+   * - deleted     -> omitted (older live copies of the same key are ignored)
+   * Deleted blocks are never delivered by the index.
    */
   void BlockIndex::buildIndex()
   {
-    entries.clear();  // Vector leeren statt count = 0
+    entries.clear();
     if (!fs) return;
-    int16_t sectorCount = fs->getSectorsCount();
-    for (int16_t i = sectorCount - 1; i >= 0; i--) 
+
+    // Keys already decided from a newer valid block (live or deleted).
+    std::vector<std::pair<uint8_t, uint8_t>> decided;
+
+    auto alreadyDecided = [&](uint8_t type, uint8_t subtype) -> bool
+    {
+      for (const auto& key : decided)
+      {
+        if (key.first == type && key.second == subtype) return true;
+      }
+      return false;
+    };
+
+    const int16_t sectorCount = fs->getSectorsCount();
+    for (int16_t i = sectorCount - 1; i >= 0; --i)
     {
       const SecureSector* sector = fs->getSector(i);
       if (!sector) continue;
-      int16_t maxBlock = sector->getFirstFreeBlock();
-      for (int16_t j = maxBlock - 1; j >= 0; j--) 
+
+      for (int16_t j = sector->getFirstFreeBlock() - 1; j >= 0; --j)
       {
         uint8_t* addr = sector->getBlockAddress(j);
         FlashBlock fb(addr);
-        if (!fb.isActive()) continue;
-        uint8_t type = fb.getType();
-        uint8_t subtype = (type >= 0x80) ? fb.getSubtype() : 0;
-        bool found = false;
-        for (size_t k = 0; k < entries.size(); ++k) 
-        {  
-          if (entries[k].type == type && entries[k].subtype == subtype) 
-          {
-            found = true;
-            break;
-          }
+
+        // isValid includes live blocks and deleted tombstones.
+        if (!fb.isValid()) continue;
+
+        const uint8_t type = fb.getType();
+        const uint8_t subtype = (type >= 0x80) ? fb.getSubtype() : 0;
+        if (alreadyDecided(type, subtype)) continue;
+
+        decided.push_back({type, subtype});
+
+        if (fb.isDeleted())
+        {
+          PFS_LOG(5, "skip deleted block type %d/%d at sector %d block %d\r\n",
+                  type, subtype, i, j);
+          continue;
         }
-        if (!found) 
-        {  
-          entries.push_back({type, subtype, IndexedFlashBlock(addr, i, j)});
-          PFS_LOG(5, "indexed block type %d/%d at sector %d block %d\r\n", type, subtype, i, j);
-        }
+
+        entries.push_back({type, subtype, IndexedFlashBlock(addr, i, j)});
+        PFS_LOG(5, "indexed block type %d/%d at sector %d block %d\r\n", type, subtype, i, j);
       }
     }
   }

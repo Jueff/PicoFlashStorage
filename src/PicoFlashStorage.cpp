@@ -17,7 +17,7 @@ namespace PicoFlashStorage
 
   uint8_t FlashStorage::LogLevel = 0;
 
-// Konstruktor
+// Constructor
   FlashStorage::FlashStorage(uint16_t baseSectorNumber, uint16_t sectorCount, const uint8_t identity[8])
     : pSectors(nullptr), baseSectorNumber(baseSectorNumber), sectorCount(sectorCount), maxEraseCount(0), signature(&identity[0])
   {
@@ -99,7 +99,7 @@ namespace PicoFlashStorage
     PFS_LOG(3, "no free block found to write type %d/%d\r\n", block->getType(), block->getSubtype());
     bool allBLocksFree = pSectors[sectorCount - 1]->getFirstFreeBlock() == 0;
 
-    // BlockIndex verwenden, um zu sichern
+    // Use BlockIndex to collect live blocks that must be preserved before reclaim
     BlockIndex index(this);
     std::vector<FlashWriteBlock*> blocksToPreserve;
     for (size_t i = 0; i < index.getCount(); ++i)
@@ -212,7 +212,7 @@ namespace PicoFlashStorage
   {
     FlashWriteBlock delBlock(type, subtype);
     delBlock.setIsDeleted(true);
-    // Setze alle Datenbytes auf 0xFF (geloescht)
+    // Set all data bytes to 0xFF (deleted marker)
     memset(delBlock.getBuffer() + 2, 0xFF, 6);
     return write(&delBlock);
   }
